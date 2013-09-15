@@ -1,0 +1,650 @@
+#!/bin/bash
+
+# Notification Email
+# (on|off)
+instance=false
+workshop_maps=true
+
+
+emailnotification="on"
+email="deberghes.johan@gmail.com"
+servicename="%SERVNAME%"
+servicename_casual_prefix="csgoserver_casual-"
+servicename_competitive_prefix="csgoserver_competitive-"
+
+
+# Start vars - can't be modified after the server start
+tickrate="128"
+maxplayers_override="16"
+port="%PORT%"
+
+# commandline cvars - can be modified via console or rcon commands
+sv_lan_cvar=0
+sv_password_cvar=""
+sv_contact_cvar="tech@cscup.be"
+map_cvar="de_dust2"
+mapcycledisabled_cvar="0"
+mapgroup_cvar="mg_bomb"
+motdfile_cvar="motd.txt"
+workshop_start_map_cvar="125488374"
+host_workshop_collection_cvar="125624862"
+net_public_adr_cvar="%PUBLICIP%"
+ip_cvar="0.0.0.0"
+tv_port_cvar="%TVPORT%"
+clientport_cvar="%CLIENTPORT%"
+exec_cvar="%EXEC%"
+game_type_cvar="%GAMETYPE%"
+game_mode_cvar="%GAMEMODE%"
+hostname_cvar="%HOSTNAME%"
+svtag_cvar="%SVTAG%"
+rcon_password_cvar="%RCONPASS%"
+sv_steamgroup_cvar=""
+sv_region_cvar="3"
+sv_steamgroup_exclusive_cvar="0"
+sv_search_key_cvar=""
+tv_name_cvar="CSCUP GOTV - Competitive "
+tv_title_cvar="CSCUP GOTV - Competitive "
+tv_enable_cvar="0"
+tv_password_cvar=""
+tv_relaypassword_cvar=""
+
+
+#parms="-nobots -game csgo -console -secure -usercon +game_type ${gametype} +game_mode ${gamemode} +mapgroup ${mapgroup} +netpublic_adr ${public_ip} -tickrate ${tickrate} -maxplayers_override ${maxplayers} +map ${defaultmap} -strictportbind -port ${port} +tv_port ${sourcetvport} +clientport ${clientport} +exec ${cfg}"
+parms="-game csgo"
+parms+=" -secure"
+parms+=" -usercon"
+parms+=" -tickrate ${tickrate}"
+parms+=" -maxplayers_override ${maxplayers_override}"
+parms+=" -strictportbind"
+parms+=" -port ${port}"
+#parms+=" -gamemodes_serverfile gamemodes_server.txt"
+#parms+=" -authkey ${api_key}"
+#parms+=" -dev"
+#parms+=" -nobots"
+#parms+=" -nohltv"
+
+parms+=" +clientport ${clientport_cvar}"
+parms+=" +exec ${exec_cvar}"
+parms+=" +game_type ${game_type_cvar}"
+parms+=" +game_mode ${game_mode_cvar}"
+parms+=" +hostname \"${hostname_cvar}\""
+parms+=" +ip ${ip_cvar}"
+parms+=" +mapcycledisabled ${mapcycledisabled_cvar}"
+parms+=" +motdfile ${motdfile_cvar}"
+parms+=" +net_public_adr ${net_public_adr_cvar}"
+parms+=" +rcon_password \"${rcon_password_cvar}\""
+parms+=" +sv_lan ${sv_lan_cvar}"
+parms+=" +sv_password \"${sv_password_cvar}\""
+parms+=" +sv_contact ${sv_contact_cvar}"
+parms+=" +sv_region ${sv_region_cvar}"
+parms+=" +sv_steamgroup ${sv_steamgroup_cvar}"
+parms+=" +sv_steamgroup_exclusive ${sv_steamgroup__exclusive_cvar}"
+parms+=" +sv_tags \"${svtag_cvar}\""
+parms+=" +tv_port ${tv_port_cvar}"
+parms+=" +sv_search_key \"${sv_search_key_cvar}\""
+parms+=" +tv_name \"${tv_name_cvar}\""
+parms+=" +tv_title \"${tv_title_cvar}\""
+parms+=" +tv_enable ${tv_enable_cvar}"
+parms+=" +tv_password \"${tv_password_cvar}\""
+parms+=" +tv_relaypassword \"${tv_relaypassword_cvar}\""
+
+
+parms+=" +workshop_start_map ${workshop_start_map_cvar}"
+parms+=" +host_workshop_collection ${host_workshop_collection_cvar}"
+parms+=" +map ${map_cvar}"
+parms+=" +mapgroup ${mapgroup_cvar}"
+
+
+#### Advanced Variables ####
+
+# Steam
+appid="740"
+
+# Directorys
+rootdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+selfname="$0"
+filesdir="${rootdir}/games/csgo_ds"
+servercfg="${filesdir}/csgo/cfg/server_casual.cfg"
+
+# Server names
+gamename="CSCUP Counter Strike: Global Offensive"
+servername=${hostname_cvar}
+
+# Logging
+logdir="${rootdir}/logs/script"
+gamelogdir="${filesdir}/csgo/logs"
+logfile="${logdir}/${servicename}.log"
+logfiledate="${logdir}/${servicename}-$( date '+%d-%m-%Y-%H-%M-%S').log"
+logdays="7"
+
+##### Script #####
+# Do not edit
+# unless you know
+# what you are doing
+
+fn_rootcheck(){
+if [ `whoami` != "steam" ];then
+        echo -e "[\e[0;31m FAIL \e[0;39m] Script will not run with any user beside 'steam' !"
+        exit
+fi
+}
+
+fn_syscheck(){
+if [ ! -e ${filesdir} ];then
+        echo -e "[\e[0;31m FAIL \e[0;39m] Cannot access ${filesdir}: No such directory"
+        exit
+fi
+}
+
+fn_serverquery(){
+# uses serverquery.py to directly query the server
+# detects if the server locks up
+if [ -f serverquery.py ];then
+        echo -e "[\e[0;36m INFO \e[0;39m] serverquery.py detected"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: serverquery.py detected" >> ${logfile}
+        echo -e "[\e[0;32m  OK  \e[0;39m] Querying ${servicename}: ${servername}: QUERYING"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Querying ${servername}: QUERYING" >> ${logfile}
+        serverquery=`./serverquery.py 127.0.0.1 ${port} 2>&1`
+        sleep 1
+        if [ "${serverquery}" = "ERROR 1" ]||[ "${serverquery}" = "ERROR 2" ]||[ "${serverquery}" = "ERROR 3" ];then
+                echo -e "[\e[0;31m FAIL \e[0;39m] Querying ${servicename}: ${servername}: ${serverquery}"
+                echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Querying ${servername}: ${serverquery}" >> ${logfile}
+                sleep 1
+                echo -e "[\e[1;33m WARN \e[0;39m] ${servicename}: Monitor detected ${servername} has locked up!"
+                echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Monitor detected ${servername} has locked up!" >> ${logfile}
+                sleep 1
+                fn_restartserver
+        else
+                echo -e "[\e[0;32m  OK  \e[0;39m] Querying ${servicename}: ${servername}: ${serverquery}"
+                echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Querying ${servername}: ${serverquery}" >> ${logfile}
+                sleep 1
+        fi
+fi
+}
+
+fn_runcheck(){
+# already running check
+pidwc=`screen -ls |grep ${servicename} |awk -F . '{print $1}'|awk '{print $1}'|wc -l`
+if [ ${pidwc} -eq 1 ];then
+        fn_serverquery
+        echo -e "[\e[0;36m INFO \e[0;39m] ${servicename}: ${servername} is already running"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: ${servername} is already running" >> ${logfile}
+        exit
+# multiple of same instance check
+elif [ ${pidwc} -ge 2 ];then
+        echo -e "[\e[0;31m FAIL \e[0;39m] ${servicename}: ${servername} is running ${pidwc} times"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: ${servername} is running ${pidwc} times" >> ${logfile}
+        echo -e "[\e[0;32m  OK  \e[0;39m] ${servicename}: Stopping ${pidwc} instances of ${servername}"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Stopping ${pidwc} instances of ${servername}" >> ${logfile}
+        fn_stopserver
+        exit
+fi
+}
+
+fn_distro(){
+arch=$(uname -m)
+kernel=$(uname -r)
+if [ -f /etc/lsb-release ]; then
+        os=$(lsb_release -s -d)
+elif [ -f /etc/debian_version ]; then
+        os="Debian $(cat /etc/debian_version)"
+elif [ -f /etc/redhat-release ]; then
+        os=`cat /etc/redhat-release`
+else
+        os="$(uname -s) $(uname -r)"
+fi
+}
+
+fn_uptime(){
+uptime=$(</proc/uptime)
+uptime=${uptime%%.*}
+minutes=$(( uptime/60%60 ))
+hours=$(( uptime/60/60%24 ))
+days=$(( uptime/60/60/24 ))
+}
+
+fn_load(){
+load=$(uptime | awk -F 'load average' '{ print $2 }')
+}
+
+fn_emailnotification(){
+fn_distro
+fn_uptime
+fn_load
+{
+echo -e "=========================================\nServer information\n=========================================\n"
+echo -e "Date: $(date)"
+echo -e "Distro: ${os}"
+echo -e "Arch: ${arch}"
+echo -e "Kernel: ${kernel}"
+echo -e "Hostname: $HOSTNAME"
+echo -e "Uptime: ${days}d, ${hours}h, ${minutes}m"
+echo -e "Avg Load${load}\n"
+echo -e "=========================================\n${servicename} statistics\n=========================================\n"
+echo -e "Service: ${servicename}"
+echo -e "Server: ${servername}"
+echo -e "Failure reason: ${failurereason}"
+echo -e "Action Taken: ${actiontaken}\n"
+echo -e "=========================================\n${servicename} log summary\n=========================================\n"
+}|tee ${logdir}/${servicename}-email.log > /dev/null 2>&1
+tail -50 ${logfile} >> /${logdir}/${servicename}-email.log
+mail -s "${subject}" ${email} < /${logdir}/${servicename}-email.log
+echo -e "[\e[0;36m INFO \e[0;39m] Sent email notification to ${email}"
+echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: sent email notification to ${email}" >> ${logfile}
+}
+
+fn_emailtest(){
+fn_rootcheck
+fn_syscheck
+echo -e "[\e[0;32m  OK  \e[0;39m] Emailing test notification"
+echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Emailing test notification" >> ${logfile}
+if [ "${emailnotification}" = "on" ];then
+        subject="${servicename} Email Test Notification - Testing ${servername}"
+        failurereason="Testing ${servicename} email notification"
+        actiontaken="Sent test email...hello is this thing on?"
+        fn_emailnotification
+else
+        echo -e "[\e[0;31m FAIL \e[0;39m] Email notificaion not enabled"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Email notificaion not enabled" >> ${logfile}
+fi
+}
+
+fn_logmanager(){
+# log manager will active if finds logs older than $logdays
+if [ `find ${logdir}/* -mtime +${logdays} |wc -l` -ne "0" ];then
+        echo -e "[\e[0;32m  OK  \e[0;39m] Starting log cleaner"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Starting log cleaner" >> ${logfile}
+        echo -e "[\e[0;36m INFO \e[0;39m] Removing logs older than ${logdays} days"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Removing logs older than ${logdays} days" >> ${logfile}
+        find ${logdir}/* -mtime +${logdays} |tee >> ${logfile}
+        count=`find ${logdir}/* -mtime +${logdays}|wc -l`
+        find ${logdir}/* -mtime +${logdays} -exec rm {} \;
+        echo -e "[\e[0;36m INFO \e[0;39m] Log cleaner removed ${count} log files"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Log cleaner removed ${count} log files" >> ${logfile}
+fi
+}
+
+fn_restartserver(){
+        echo -e "[\e[0;32m  OK  \e[0;39m] Restarting ${servicename}: ${servername}"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Restarting ${servername}" >> ${logfile}
+        fn_stopserver
+        sleep 1
+        fn_startserver
+}
+
+fn_startserver(){
+fn_rootcheck
+fn_syscheck
+fn_runcheck
+fn_logmanager
+cd ${filesdir}
+echo "Parametres definis :  ${parms}"
+echo -e "[\e[0;32m  OK  \e[0;39m] Starting ${servicename}: ${servername}"
+echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Starting ${servername}" >> ${logfile}
+cp ${logfile} ${logfiledate}
+screen -d -m -S ${servicename} ${filesdir}/srcds_run ${parms}
+sleep 1
+pidwc=`screen -ls |grep ${servicename} |awk -F . '{print $1}'|awk '{print $1}'|wc -l`
+if [ ${pidwc} -eq 0 ];then
+        echo -e "[\e[0;31m FAIL \e[0;39m] ${servicename}: Failed to start ${servername}"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: failed to start ${servername}" >> ${logfile}
+fi
+}
+
+fn_start_all_servers(){
+
+instance_count=`ls -l $1* | wc -l`
+
+#echo "instance count : $instance_count"
+for (( i=1; i<=$instance_count ; i++ ))
+do
+#   echo "./${servicename_casual_prefix}$i start"
+   bash ./$1$i start
+done
+#echo fini
+}
+
+fn_stopserver(){
+fn_rootcheck
+fn_syscheck
+pid=`screen -ls |grep ${servicename} |awk -F . '{print $1}'|awk '{print $1}'`
+if [ -z ${pid} ];then
+        echo -e "[\e[0;36m INFO \e[0;39m] ${servicename}: ${servername} is already stopped"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: ${servername} is already stopped" >> ${logfile}
+else
+        echo -e "[\e[0;32m  OK  \e[0;39m] Stopping ${servicename}: ${servername}"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Stopping ${servername}" >> ${logfile}
+        kill `screen -ls |grep ${servicename} |awk -F . '{print $1}'|awk '{print $1}'`
+        screen -wipe > /dev/null 2>&1
+fi
+}
+
+
+fn_stop_all_servers(){
+
+instance_count=`ls -l $1* | wc -l`
+
+for (( i=1; i<=$instance_count ; i++ ))
+do
+   bash ./$1$i stop
+done
+
+}
+
+
+fn_debugserver(){
+fn_rootcheck
+fn_syscheck
+cd ${filesdir}
+echo -e "[\e[0;32m  OK  \e[0;39m] Starting ${servicename}: ${servername} in debug mode!"
+sleep 0.5
+echo -e ""
+echo -e "Use for identifying server issues only!"
+while true; do
+        echo "If server is already running it will be stopped"
+        read -p "Continue? [y/N]" yn
+        case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) echo Exiting; return 1 ;;
+        * ) echo "Please answer yes or no.";;
+esac
+done
+fn_stopserver
+sleep 1
+echo -e "[\e[0;36m INFO \e[0;39m] Press CTRL+C to drop out of debug mode"
+sleep 3
+echo -e "[\e[0;32m  OK  \e[0;39m] Starting ${servicename}: ${servername}"
+${filesdir}/srcds_run ${parms} -debug
+}
+
+fn_monitorserver(){
+fn_rootcheck
+fn_syscheck
+fn_logmanager
+echo -e "[\e[0;32m  OK  \e[0;39m] Checking ${servicename}: ${servername}"
+echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Checking ${servername}" >> ${logfile}
+updatecheck=`ps -ef|grep "${selfname} update"|grep -v grep|wc -l`
+if [ "${updatecheck}" = "0" ];then
+        fn_runcheck
+        echo -e "[\e[1;33m WARN \e[0;39m] ${servicename}: Monitor detected ${servername} had stopped!"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Monitor detected ${servername} had stopped!" >> ${logfile}
+        if [ "${emailnotification}" = "on" ];then
+                subject="${servicename} Monitor - Starting ${servername}"
+                failurereason="${servername} had stopped"
+                actiontaken="restarted ${servername}"
+                fn_emailnotification
+        fi
+        fn_startserver
+else
+        echo -e "[\e[0;36m INFO \e[0;39m] ${servicename}: Monitor detected ${servername} is currently checking for updates!"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Monitor detected ${servername} is currently checking for updates!" >> ${logfile}
+        echo -e "[\e[0;36m INFO \e[0;39m] ${servicename}: ${servername} will start when updating is complete"
+        echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: ${servername} will start when updating is complete" >> ${logfile}
+fi
+}
+
+fn_updateserver(){
+fn_rootcheck
+fn_syscheck
+echo -e "[\e[0;32m  OK  \e[0;39m] Updating ${servicename}: ${servername}"
+echo -e "$( date '+%b %d %H:%M:%S') ${servicename}: Updating ${servername}" >> ${logfile}
+cd ${rootdir}
+#cd steamcmd
+./steamcmd.sh +login anonymous +force_install_dir ${filesdir} +app_update ${appid} validate +quit |tee -a ${logfile}
+cp ${filesdir}/csgo/subscribed_collection_ids.txt.custom ${filesdir}/csgo/subscribed_collection_ids.txt
+cp ${filesdir}/csgo/subscribed_file_ids.txt.custom ${filesdir}/csgo/subscribed_file_ids.txt
+
+}
+
+#
+##Installer
+#
+
+fn_header(){
+clear
+echo "================================="
+echo "${gamename}"
+echo "Server Linux Installer"
+echo "================================="
+echo ""
+}
+
+fn_steamdl(){
+echo "Installing Steam"
+echo "================================="
+cd ${rootdir}
+mkdir steamcmd
+cd steamcmd
+if [ ! -f steam.sh ];then
+        wget http://media.steampowered.com/client/steamcmd_linux.tar.gz
+        tar --verbose -zxf steamcmd_linux.tar.gz
+        rm -v steamcmd_linux.tar.gz
+        chmod +x steam.sh
+else
+        echo "Steam already installed!"
+fi
+}
+
+fn_retryinstall(){
+while true; do
+        read -p "Retry install? [y/N]" yn
+        case $yn in
+        [Yy]* ) fn_install;;
+        [Nn]* ) echo Exiting; exit ;;
+        * ) echo "Please answer yes or no.";;
+        esac
+done
+}
+
+fn_install(){
+fn_rootcheck
+fn_header
+if [ -d ${filesdir} ];then
+        echo "${gamename} Server is already installed here:"
+        pwd
+        echo ""
+        while true; do
+                read -p "Continue [y/N]" yn
+                case $yn in
+                [Yy]* ) break;;
+                [Nn]* ) echo Exiting; return 1 ;;
+                * ) echo "Please answer yes or no.";;
+                esac
+        done
+fi
+fn_header
+echo "Install Directory:"
+pwd
+echo ""
+while true; do
+        read -p "Continue [y/N]" yn
+        case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) echo Exiting; return 1 ;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+fn_header
+fn_steamdl
+echo ""
+echo "Installing ${gamename} Server"
+echo "================================="
+        cd ${rootdir}/steamcmd
+        mkdir -v -p ${filesdir}
+        mkdir -v -p ${rootdir}/log
+        mkdir -v -p ${logdir}
+        touch install.txt
+        chmod 0600 install.txt
+        echo "login anonymous" > install.txt
+        echo "force_install_dir ${filesdir}" >> install.txt
+        echo "app_update ${appid} validate" >> install.txt
+        echo "quit" >> install.txt
+        STEAMEXE=steamcmd ./steam.sh +runscript install.txt
+        rm install.txt
+        echo ""
+        echo "================================="
+        while true; do
+                read -p "Was the install successful? [y/N]" yn
+                case $yn in
+                [Yy]* ) break;;
+                [Nn]* ) fn_retryinstall ;;
+                * ) echo "Please answer yes or no.";;
+                esac
+        done
+echo ""
+echo "Configuring ${gamename} Server"
+echo "================================="
+        read -p "Enter rcon password: " rconpass
+        read -p "Enter server name: " servername
+        sleep 1
+        echo ""
+        echo "Creating server.cfg"
+        touch ${servercfg}
+        {
+                echo -e "// server name"
+                echo -e "hostname \"${servername}\""
+                echo -e ""
+                echo -e "// rcon passsword"
+                echo -e "rcon_password \"${rconpass}\""
+                echo -e ""
+                echo -e "// Server password"
+                echo -e "sv_password \"\""
+                echo -e ""
+                echo -e "// server logging"
+                echo -e "log on"
+                echo -e "sv_logbans 1"
+                echo -e "sv_logecho 1"
+                echo -e "sv_logfile 1"
+                echo -e "sv_log_onefile 0"
+        }|tee ${servercfg} > /dev/null 2>&1
+        sleep 1
+        echo ""
+        echo "Setting up logging"
+        if [ ! -h ${rootdir}/log/server ]; then
+                ln -sv ${gamelogdir} ${rootdir}/log/server
+        else
+                echo "Symbolic link ${gamelogdir} => ${rootdir}/log/server already exists!"
+        fi
+        sleep 1
+        echo ""
+        echo "Applying steamclient.so fix"
+        mkdir -v ${rootdir}/.steam
+        mkdir -v ${rootdir}/.steam/sdk32
+        cp -v ${filesdir}/bin/steamclient.so ${rootdir}/.steam/sdk32/steamclient.so
+        sleep 1
+        echo ""
+        echo "${gamename} Server Details"
+        echo "================================="
+        hostname=`grep -s hostname ${servercfg} | sed 's/hostname //g'|sed 's/"//g'`
+        rcon=`grep -s rcon_password ${servercfg} | sed 's/rcon_password //g'|sed 's/"//g'`
+        echo "Server hostname: ${hostname}"
+        echo "Rcon password: ${rcon}"
+        echo "You can edit these in server.cfg:"
+        echo "${servercfg}"
+        echo ""
+        echo "Server IP: localhost:27015"
+        echo "You can change port by editing the"
+        echo "start parms in ${selfname}"
+        echo "================================="
+        echo "Install Complete!"
+        echo ""
+        echo "To start server type:"
+        echo "${selfname} start"
+        echo ""
+}
+
+fn_add_instance(){
+ read -p "Server instance Hostname ?" instance_hostname
+
+ read -p "RCON password ?" instance_rconpass
+
+ instance_count=`ls -l $3* | wc -l`
+
+ instance_nb=$(( $instance_count + 1 ))
+
+ instance_port=$((27015 + $instance_count))
+ instance_tvport=$((27025 + $instance_count))
+ instance_clientport=$((27005 + $instance_count))
+
+ instance_public_ip=`curl ifconfig.me`
+
+ sed -e "s/%PUBLICIP%/${instance_public_ip}/" -e "s/instance=false/instance=true/" -e "s/%SERVNAME%/${servicename_casual_prefix}${instance_nb}/" -e "s/%PORT%/${instance_port}/" -e "s/%TVPORT%/${instance_tvport}/" -e "s/%CLIENTPORT%/${instance_clientport}/" -e "s/%EXEC%/server.cfg/" -e "s/%GAMETYPE%/$1/" -e "s/%GAMEMODE%/$2/" -e "s/%HOSTNAME%/${instance_hostname}/" -e "s/%SVTAG%/CSCUP,casual,beta2,ESL,128,cscup.be,ffa/" -e "s/%RCONPASS%/${instance_rconpass}/" csgoserver_manager > $3${instance_nb}
+
+ chmod +x ./$3${instance_nb}
+}
+
+if $instance; then
+#the script is an instance
+case "$1" in
+        console)
+                screenname=`screen -ls | grep ${servicename} | cut -f 2`
+                screen -r ${screenname};;
+
+        start)
+                fn_startserver;;
+        stop)
+                fn_stopserver;;
+
+        restart)
+                fn_restartserver;;
+        monitor)
+                fn_monitorserver;;
+        debug)
+                fn_debugserver;;
+        *)
+                echo "Usage: $0 {start|stop|restart|monitor|debug}"
+                exit 1;;
+esac
+
+else
+#the script is the manager
+case "$1" in
+        add-casual)
+                fn_add_instance 0 0 ${servicename_casual_prefix};;
+        add-competitive)
+                fn_add_instance 0 1 ${servicename_competitive_prefix};;
+        startall-casual)
+                fn_start_all_servers ${servicename_casual_prefix};;
+        startall-competitive)
+                fn_start_all_servers ${servicename_competitive_prefix};;
+        startall)
+                fn_start_all_servers ${servicename_casual_prefix}
+                fn_start_all_servers ${servicename_competitive_prefix};;
+        stopall-casual)
+                fn_stop_all_servers ${servicename_casual_prefix};;
+        stopall-competitive)
+                fn_stop_all_servers ${servicename_competitive_prefix};;
+        stopall)
+                fn_stop_all_servers ${servicename_casual_prefix}
+                fn_stop_all_servers ${servicename_competitive_prefix};;
+        restartall-casual)
+                fn_start_all_servers ${servicename_casual_prefix}
+                fn_stop_all_servers ${servicename_casual_prefix};;
+        restartall-competitive)
+                fn_start_all_servers ${servicename_competitive_prefix}
+                fn_stop_all_servers ${servicename_competitive_prefix};;
+        restartall)
+                fn_stop_all_servers ${servicename_casual_prefix}
+                fn_stop_all_servers ${servicename_competitive_prefix}
+                fn_start_all_servers ${servicename_casual_prefix}
+                fn_start_all_servers ${servicename_competitive_prefix};;
+
+        update)
+                fn_stop_all_servers ${servicename_casual_prefix}
+                fn_stop_all_servers ${servicename_competitive_prefix}
+                fn_updateserver
+                fn_start_all_servers ${servicename_casual_prefix}
+                fn_start_all_servers ${servicename_competitive_prefix};;
+        install)
+                fn_install;;
+        email-test)
+                fn_emailtest;;
+        *)
+                echo "Usage: $0 {startall-casual|startall-competitive|startall|stopall-casual|stopall-competitive|restart|update|monitor|install|email-test}"
+                exit 1;;
+esac
+
+
+fi
+
+exit
