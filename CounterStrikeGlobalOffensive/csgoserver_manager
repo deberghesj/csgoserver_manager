@@ -9,53 +9,55 @@ workshop_maps=true
 emailnotification="on"
 email="deberghes.johan@gmail.com"
 servicename="%SERVNAME%"
-servicename_casual_prefix="csgoserver_casual-"
-servicename_competitive_prefix="csgoserver_competitive-"
+servicename_general_prefix="csgoserver_"
+servicename_casual_prefix=${servicename_general_prefix}"casual-"
+servicename_competitive_prefix=${servicename_general_prefix}"competitive-"
 
 
 # Start vars - can't be modified after the server start
-tickrate="128"
-maxplayers_override="16"
+maxplayers_override="%MAXPLAYERS%"
 port="%PORT%"
+tickrate="128"
 
 # commandline cvars - can be modified via console or rcon commands
-sv_lan_cvar=0
-sv_password_cvar=""
-sv_contact_cvar="tech@cscup.be"
 map_cvar="de_dust2"
 mapcycledisabled_cvar="0"
 mapgroup_cvar="mg_bomb"
-motdfile_cvar="motd.txt"
 workshop_start_map_cvar="125488374"
 host_workshop_collection_cvar="125624862"
-net_public_adr_cvar="%PUBLICIP%"
-ip_cvar="0.0.0.0"
-tv_port_cvar="%TVPORT%"
+
 clientport_cvar="%CLIENTPORT%"
+ip_cvar="0.0.0.0"
+net_public_adr_cvar="%PUBLICIP%"
 exec_cvar="%EXEC%"
 game_type_cvar="%GAMETYPE%"
 game_mode_cvar="%GAMEMODE%"
 hostname_cvar="%HOSTNAME%"
-svtag_cvar="%SVTAG%"
+motdfile_cvar="motd.txt"
 rcon_password_cvar="%RCONPASS%"
-sv_steamgroup_cvar=""
+sv_contact_cvar="tech@cscup.be"
+sv_lan_cvar=0
+sv_password_cvar="%SVPASSWORD%"
 sv_region_cvar="3"
-sv_steamgroup_exclusive_cvar="0"
 sv_search_key_cvar=""
-tv_name_cvar="CSCUP GOTV - Competitive "
-tv_title_cvar="CSCUP GOTV - Competitive "
-tv_enable_cvar="0"
-tv_password_cvar=""
+sv_steamgroup_cvar=""
+sv_steamgroup_exclusive_cvar="0"
+svtag_cvar="%SVTAG%"
+tv_enable_cvar="%TVENABLE%"
+tv_name_cvar="%TVTITLE%"
+tv_password_cvar="%TVPASSWORD%"
+tv_port_cvar="%TVPORT%"
 tv_relaypassword_cvar=""
+tv_title_cvar="%TVTITLE%"
 
 
-#parms="-nobots -game csgo -console -secure -usercon +game_type ${gametype} +game_mode ${gamemode} +mapgroup ${mapgroup} +netpublic_adr ${public_ip} -tickrate ${tickrate} -maxplayers_override ${maxplayers} +map ${defaultmap} -strictportbind -port ${port} +tv_port ${sourcetvport} +clientport ${clientport} +exec ${cfg}"
+#launch parameters for srcds
 parms="-game csgo"
 parms+=" -secure"
 parms+=" -usercon"
 parms+=" -tickrate ${tickrate}"
 parms+=" -maxplayers_override ${maxplayers_override}"
-parms+=" -strictportbind"
+#parms+=" -strictportbind"
 parms+=" -port ${port}"
 #parms+=" -gamemodes_serverfile gamemodes_server.txt"
 #parms+=" -authkey ${api_key}"
@@ -63,37 +65,41 @@ parms+=" -port ${port}"
 #parms+=" -nobots"
 #parms+=" -nohltv"
 
-parms+=" +clientport ${clientport_cvar}"
-parms+=" +exec ${exec_cvar}"
+if [ ${clientport_cvar} != "" ]; then parms+=" +clientport ${clientport_cvar}"; fi
+if [ -n "${exec_cvar}" ]; then parms+=" +exec ${exec_cvar}"; fi
 parms+=" +game_type ${game_type_cvar}"
 parms+=" +game_mode ${game_mode_cvar}"
 parms+=" +hostname \"${hostname_cvar}\""
 parms+=" +ip ${ip_cvar}"
-parms+=" +mapcycledisabled ${mapcycledisabled_cvar}"
-parms+=" +motdfile ${motdfile_cvar}"
+if [ ${mapcycledisabled_cvar} == "1" ]; then parms+=" +mapcycledisabled ${mapcycledisabled_cvar}"; fi
+if [ ${motdfile_cvar} != "motd.txt" ]; then parms+=" +motdfile ${motdfile_cvar}"; fi
 parms+=" +net_public_adr ${net_public_adr_cvar}"
 parms+=" +rcon_password \"${rcon_password_cvar}\""
 parms+=" +sv_lan ${sv_lan_cvar}"
 parms+=" +sv_password \"${sv_password_cvar}\""
 parms+=" +sv_contact ${sv_contact_cvar}"
 parms+=" +sv_region ${sv_region_cvar}"
-parms+=" +sv_steamgroup ${sv_steamgroup_cvar}"
-parms+=" +sv_steamgroup_exclusive ${sv_steamgroup__exclusive_cvar}"
+if [ -n "${sv_steamgroup_cvar}" ]; then parms+=" +sv_steamgroup ${sv_steamgroup_cvar}"; fi
+if [ ${sv_steamgroup_exclusive_cvar} != "0"  ]; then parms+=" +sv_steamgroup_exclusive ${sv_steamgroup_exclusive_cvar}"; fi
 parms+=" +sv_tags \"${svtag_cvar}\""
-parms+=" +tv_port ${tv_port_cvar}"
-parms+=" +sv_search_key \"${sv_search_key_cvar}\""
-parms+=" +tv_name \"${tv_name_cvar}\""
-parms+=" +tv_title \"${tv_title_cvar}\""
-parms+=" +tv_enable ${tv_enable_cvar}"
-parms+=" +tv_password \"${tv_password_cvar}\""
-parms+=" +tv_relaypassword \"${tv_relaypassword_cvar}\""
+if [ -n "${sv_search_key_cvar}" ]; then parms+=" +sv_search_key \"${sv_search_key_cvar}\""; fi
 
+if [ $tv_enable_cvar == 1 ]; then
+	parms+=" +tv_name \"${tv_name_cvar}\""
+	parms+=" +tv_title \"${tv_title_cvar}\""
+	parms+=" +tv_enable ${tv_enable_cvar}"
+	parms+=" +tv_password \"${tv_password_cvar}\""
+	parms+=" +tv_relaypassword \"${tv_relaypassword_cvar}\""
+	parms+=" +tv_port ${tv_port_cvar}"
+fi
 
-parms+=" +workshop_start_map ${workshop_start_map_cvar}"
-parms+=" +host_workshop_collection ${host_workshop_collection_cvar}"
-parms+=" +map ${map_cvar}"
-parms+=" +mapgroup ${mapgroup_cvar}"
-
+if [ $workshop_maps == true ];then
+	parms+=" +workshop_start_map ${workshop_start_map_cvar}"
+	parms+=" +host_workshop_collection ${host_workshop_collection_cvar}"
+else
+	parms+=" +map ${map_cvar}"
+	parms+=" +mapgroup ${mapgroup_cvar}"
+fi
 
 #### Advanced Variables ####
 
@@ -104,7 +110,7 @@ appid="740"
 rootdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 selfname="$0"
 filesdir="${rootdir}/games/csgo_ds"
-servercfg="${filesdir}/csgo/cfg/server_casual.cfg"
+gamedir="${filesdir}/csgo"
 
 # Server names
 gamename="CSCUP Counter Strike: Global Offensive"
@@ -112,7 +118,7 @@ servername=${hostname_cvar}
 
 # Logging
 logdir="${rootdir}/logs/script"
-gamelogdir="${filesdir}/csgo/logs"
+gamelogdir="${gamedir}/logs"
 logfile="${logdir}/${servicename}.log"
 logfiledate="${logdir}/${servicename}-$( date '+%d-%m-%Y-%H-%M-%S').log"
 logdays="7"
@@ -293,14 +299,20 @@ fi
 
 fn_start_all_servers(){
 
-instance_count=`ls -l $1* | wc -l`
+#instance_count=`ls -l $1* | wc -l`
 
 #echo "instance count : $instance_count"
-for (( i=1; i<=$instance_count ; i++ ))
-do
+#for (( i=1; i<=$instance_count ; i++ ))
+#do
 #   echo "./${servicename_casual_prefix}$i start"
-   bash ./$1$i start
+#   bash ./$1$i start
+#done
+
+for instance in `ls -1 $1*`;do
+   bash ./$instance start
 done
+
+
 #echo fini
 }
 
@@ -322,12 +334,17 @@ fi
 
 fn_stop_all_servers(){
 
-instance_count=`ls -l $1* | wc -l`
+#instance_count=`ls -l $1* | wc -l`
 
-for (( i=1; i<=$instance_count ; i++ ))
-do
-   bash ./$1$i stop
+#for (( i=1; i<=$instance_count ; i++ ))
+#do
+#   bash ./$1$i stop
+#done
+
+for instance in `ls -1 $1*`;do
+   bash ./$instance stop
 done
+
 
 }
 
@@ -436,6 +453,18 @@ while true; do
 done
 }
 
+fn_dependancies(){
+echo ""
+echo "Before install, you need to install the following packages :"
+echo "- curl (apt-get install curl)"
+echo "- screen (apt-get install screen)"
+echo "- wget (apt-get install wget)"
+echo ""
+echo "if you want to monitor your server with Munin, you have to install :"
+echo "- munin-node"
+
+}
+
 fn_install(){
 fn_rootcheck
 fn_header
@@ -471,8 +500,9 @@ echo "Installing ${gamename} Server"
 echo "================================="
         cd ${rootdir}/steamcmd
         mkdir -v -p ${filesdir}
-        mkdir -v -p ${rootdir}/log
+        #mkdir -v -p ${rootdir}/log
         mkdir -v -p ${logdir}
+	mkdir -v -p ${gamelogdir}
         touch install.txt
         chmod 0600 install.txt
         echo "login anonymous" > install.txt
@@ -491,39 +521,10 @@ echo "================================="
                 * ) echo "Please answer yes or no.";;
                 esac
         done
-echo ""
-echo "Configuring ${gamename} Server"
-echo "================================="
-        read -p "Enter rcon password: " rconpass
-        read -p "Enter server name: " servername
-        sleep 1
-        echo ""
-        echo "Creating server.cfg"
-        touch ${servercfg}
-        {
-                echo -e "// server name"
-                echo -e "hostname \"${servername}\""
-                echo -e ""
-                echo -e "// rcon passsword"
-                echo -e "rcon_password \"${rconpass}\""
-                echo -e ""
-                echo -e "// Server password"
-                echo -e "sv_password \"\""
-                echo -e ""
-                echo -e "// server logging"
-                echo -e "log on"
-                echo -e "sv_logbans 1"
-                echo -e "sv_logecho 1"
-                echo -e "sv_logfile 1"
-                echo -e "sv_log_onefile 0"
-        }|tee ${servercfg} > /dev/null 2>&1
-        sleep 1
-        echo ""
-        echo "Setting up logging"
-        if [ ! -h ${rootdir}/log/server ]; then
-                ln -sv ${gamelogdir} ${rootdir}/log/server
+        if [ ! -h ${logdir}/csgo_logs ]; then
+                ln -sv ${gamelogdir} ${logdir}/csgo_logs
         else
-                echo "Symbolic link ${gamelogdir} => ${rootdir}/log/server already exists!"
+                echo "Symbolic link ${gamelogdir} => ${logdir}/csgo_logs already exists!"
         fi
         sleep 1
         echo ""
@@ -532,33 +533,38 @@ echo "================================="
         mkdir -v ${rootdir}/.steam/sdk32
         cp -v ${filesdir}/bin/steamclient.so ${rootdir}/.steam/sdk32/steamclient.so
         sleep 1
-        echo ""
-        echo "${gamename} Server Details"
-        echo "================================="
-        hostname=`grep -s hostname ${servercfg} | sed 's/hostname //g'|sed 's/"//g'`
-        rcon=`grep -s rcon_password ${servercfg} | sed 's/rcon_password //g'|sed 's/"//g'`
-        echo "Server hostname: ${hostname}"
-        echo "Rcon password: ${rcon}"
-        echo "You can edit these in server.cfg:"
-        echo "${servercfg}"
-        echo ""
-        echo "Server IP: localhost:27015"
-        echo "You can change port by editing the"
-        echo "start parms in ${selfname}"
+	touch ${gamedir}/subscribed_collection_ids.txt.custom
+	touch ${gamedir}/subscribed_file_ids.txt.custom
+	cp -f ${gamedir}/subscribed_collection_ids.txt.custom ${gamedir}/subscribed_collection_ids.txt
+        cp -f ${gamedir}/subscribed_file_ids.txt.custom ${gamedir}/subscribed_file_ids.txt
         echo "================================="
         echo "Install Complete!"
         echo ""
-        echo "To start server type:"
-        echo "${selfname} start"
+        echo "To create a server type:"
+        echo "${selfname} add-competitive"
+        echo "${selfname} add-casual"
+    
         echo ""
 }
 
 fn_add_instance(){
- read -p "Server instance Hostname ?" instance_hostname
-
- read -p "RCON password ?" instance_rconpass
-
- instance_count=`ls -l $3* | wc -l`
+ instance_tv_title=""
+ instance_tv_password=""
+ instance_sv_password=""
+ read -p "Server instance Hostname ? " instance_hostname
+ read -p "RCON password ? " instance_rconpass
+ read -p "Server password (blank if none) ? " instance_sv_password
+ read -p "Server tags (comma-separated) ? " instance_svtags
+ read -p "Name of Config file to exec at startup (blank if none)? " instance_execcfg
+ read -p "MaxPlayers number ? " instance_maxplayers
+ read -p "Enable GOTV (0|1) ? " instance_tvenable
+ if [ ${instance_tvenable} == 1 ]; then
+ 	read -p "TV title ? " instance_tv_title
+	read -p "TV password ? " instance_tv_password
+ fi
+# instance_count=`ls -l $3* | wc -l`
+ instance_count=`ls -l ${servicename_general_prefix}* | wc -l`
+ instance_count=$instance_count-1 
 
  instance_nb=$(( $instance_count + 1 ))
 
@@ -568,9 +574,45 @@ fn_add_instance(){
 
  instance_public_ip=`curl ifconfig.me`
 
- sed -e "s/%PUBLICIP%/${instance_public_ip}/" -e "s/instance=false/instance=true/" -e "s/%SERVNAME%/${servicename_casual_prefix}${instance_nb}/" -e "s/%PORT%/${instance_port}/" -e "s/%TVPORT%/${instance_tvport}/" -e "s/%CLIENTPORT%/${instance_clientport}/" -e "s/%EXEC%/server.cfg/" -e "s/%GAMETYPE%/$1/" -e "s/%GAMEMODE%/$2/" -e "s/%HOSTNAME%/${instance_hostname}/" -e "s/%SVTAG%/CSCUP,casual,beta2,ESL,128,cscup.be,ffa/" -e "s/%RCONPASS%/${instance_rconpass}/" csgoserver_manager > $3${instance_nb}
+ instance_name=$3${instance_port}
 
- chmod +x ./$3${instance_nb}
+ sed -e "s/%MAXPLAYERS%/${instance_maxplayers}/" -e "s/%TVENABLE%/${instance_tvenable}/" -e "s/%TVTITLE%/${instance_tv_title}/" -e "s/%TVPASSWORD%/${instance_tv_password}/" -e "s/%SVPASSWORD%/${instance_sv_password}/" -e "s/%PUBLICIP%/${instance_public_ip}/" -e "s/instance=false/instance=true/" -e "s/%SERVNAME%/$instance_name/" -e "s/%PORT%/${instance_port}/" -e "s/%TVPORT%/${instance_tvport}/" -e "s/%CLIENTPORT%/${instance_clientport}/" -e "s/%EXEC%/${instance_execcfg}/" -e "s/%GAMETYPE%/$1/" -e "s/%GAMEMODE%/$2/" -e "s/%HOSTNAME%/${instance_hostname}/" -e "s/%SVTAG%/${instance_svtags}/" -e "s/%RCONPASS%/${instance_rconpass}/" csgoserver_manager > $instance_name
+
+ chmod +x ./$instance_name
+
+ echo ""
+ echo "Public IP address : ${instance_public_ip}"
+ echo "Port : ${instance_port}"
+ echo "TV Port : ${instance_tvport}"
+ echo "URL : steam://connect/${instance_public_ip}:${instance_port}"
+ echo ""
+}
+
+fn_clone_instance(){
+ instance_count=`ls -l ${servicename_general_prefix}* | wc -l`
+ instance_count=$instance_count-1
+
+ instance_nb=$(( $instance_count + 1 ))
+
+ instance_port=$((27015 + $instance_count))
+ instance_tvport=$((27025 + $instance_count))
+ instance_clientport=$((27005 + $instance_count))
+
+ instance_public_ip=`curl ifconfig.me`
+
+ instance_prefix=`echo $1 | cut -d \- -f 1`
+
+ instance_name=${instance_prefix}-${instance_port} 
+
+ sed -e "s/instance=false/instance=true/" -e "s/%PUBLICIP%/${instance_public_ip}/" -e "s/%SERVNAME%/${instance_name}/" -e "s/%PORT%/${instance_port}/" -e "s/%TVPORT%/${instance_tvport}/" -e "s/%CLIENTPORT%/${instance_clientport}/"  csgoserver_manager > ${instance_name}
+
+ chmod +x ./${instance_name}
+
+ for cvar in `grep -e "[a-z]_cvar=" -e "^workshop_maps=" -e "^email=" -e "^maxplayers_override=" -e "^tickrate=" $1`;do
+    cvarname=`echo $cvar | cut -d \" -f 1`
+    sed -i -e "s/^${cvarname}.*/$cvar/" ${instance_name}
+ done
+
 }
 
 if $instance; then
@@ -592,14 +634,16 @@ case "$1" in
         debug)
                 fn_debugserver;;
         *)
-                echo "Usage: $0 {start|stop|restart|monitor|debug}"
+                echo "Usage: $0 {console|start|stop|restart|monitor|debug}"
                 exit 1;;
 esac
 
 else
 #the script is the manager
 case "$1" in
-        add-casual)
+        clone-instance)
+		fn_clone_instance $2;;
+	add-casual)
                 fn_add_instance 0 0 ${servicename_casual_prefix};;
         add-competitive)
                 fn_add_instance 0 1 ${servicename_competitive_prefix};;
@@ -639,8 +683,17 @@ case "$1" in
                 fn_install;;
         email-test)
                 fn_emailtest;;
+        save-cfg)
+                cd $gamedir/
+                tar -czf cfg.tar.gz cfg/ webapi_authkey.txt subscribed_* motd.txt gamemodes_server.txt
+		mv cfg.tar.gz $rootdir/;;
+	restore-cfg)
+		cp cfg.tar.gz $gamedir/
+		cd $gamedir/
+		tar -xvzf cfg.tar.gz;;
+
         *)
-                echo "Usage: $0 {startall-casual|startall-competitive|startall|stopall-casual|stopall-competitive|restart|update|monitor|install|email-test}"
+                echo "Usage: $0 {add-casual|add-competitive|clone-instance|startall-casual|startall-competitive|startall|stopall-casual|stopall-competitive|restart|update|monitor|install|email-test|save-cfg|restore-cfg}"
                 exit 1;;
 esac
 
